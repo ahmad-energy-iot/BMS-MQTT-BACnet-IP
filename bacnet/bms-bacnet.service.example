@@ -1,0 +1,22 @@
+# Example configuration from the tested laboratory setup.
+# Adapt User, paths, IP address and Device Instance before installation.
+# MQTT credentials are read from:
+# /home/ahmad/.config/bms-logger/mqtt.json
+
+[Unit]
+Description=BMS MQTT to BACnet IP Bridge
+Wants=network-online.target
+After=network-online.target mosquitto.service
+
+[Service]
+Type=simple
+User=ahmad
+WorkingDirectory=/home/ahmad/bms-bacnet
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/ahmad/bms-bacnet/.venv/bin/python /home/ahmad/bms-bacnet/mqtt_bacnet_service.py --address 192.168.178.38/24 --instance 123001 --name BMS-Room1-Bridge
+Restart=always
+RestartSec=10
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
