@@ -643,6 +643,66 @@ The MQTT recovery test confirms that new stored measurements resumed. It does no
 
 A separate COV experiment exposed and read `covIncrement`. Notification delivery was not tested; the active dashboard integration remains polling-based.
 
+---
+
+## Projektbilder / Project Screenshots
+
+### Dashboard: BACnet verfügbar / BACnet Online
+
+Temperatur und Luftfeuchtigkeit werden über BACnet/IP gelesen und im Dashboard angezeigt.
+
+Temperature and humidity are read over BACnet/IP and displayed on the dashboard.
+
+![Dashboard: BACnet online](images/dashboard-bacnet-online.png)
+
+### Dashboard: BACnet nicht erreichbar / BACnet Unavailable
+
+Bei gestopptem BACnet-Gateway ersetzen die Anzeigen die Messwerte durch „Daten nicht verfügbar“. Die MQTT-Verbindung bleibt unabhängig davon bestehen.
+
+When the BACnet gateway is stopped, measurement displays show “Daten nicht verfügbar”. The MQTT connection remains independent of the gateway service.
+
+![Dashboard: BACnet unavailable](images/dashboard-bacnet-offline.png)
+
+### Node-RED: BACnet-Integration / BACnet Integration
+
+Zyklische Wert- und OOS-Abfragen, Verfügbarkeitsprüfung sowie Behandlung von BACnet-Lesefehlern.
+
+Periodic value and OOS reads, availability checks and BACnet read-error handling.
+
+![Node-RED: BACnet integration](images/node-red-bacnet-integration.png)
+
+### Node-RED: Steuerung und Modbus / Control and Modbus
+
+Bestehende Raumautomation mit MQTT-Sensordaten, Betriebsarten, Sollwertverarbeitung und Modbus-TCP-Simulator.
+
+Existing room automation with MQTT sensor data, operating modes, setpoint handling and a Modbus TCP simulator.
+
+![Node-RED: control and Modbus](images/node-red-control-modbus.png)
+
+### Node-RED: Alarme und Historie / Alarms and History
+
+Alarmverarbeitung, simulierte Lüfterrückmeldung, Befehlsdauer, Energieabschätzung und SQLite-Anbindung.
+
+Alarm processing, simulated fan feedback, command duration, estimated energy and SQLite integration.
+
+![Node-RED: alarms and history](images/node-red-alarms-history.png)
+
+### BACnet-Lesekonfiguration / BACnet Read Configuration
+
+Temperaturpunkt: Analog Value, Object Instance 1, Property 85 (Present Value).
+
+Temperature point: Analog Value, Object Instance 1, Property 85 (Present Value).
+
+![BACnet: temperature read configuration](images/bacnet-temperature-read-config.png)
+
+### BACnet-Leseantwort / BACnet Read Response
+
+Die Antwort zeigt Object Type 2, Instance 1 und Property 85 mit einem Temperaturwert von 22 °C zum Aufnahmezeitpunkt.
+
+The response shows Object Type 2, Instance 1 and Property 85, with a temperature value of 22 °C at the time of capture.
+
+![BACnet: temperature read response](images/bacnet-temperature-read-response.png)
+
 ## Learning Outcomes
 
 This project demonstrates initial hands-on practice in:
