@@ -671,6 +671,14 @@ A separate COV experiment exposed and read `covIncrement`. Notification delivery
 
 ![Hardware setup — OFF](images/hardware-off.jpg)
 
+### Hardware-Demonstration / Hardware Demonstration
+
+[▶ Hardware-Video ansehen / Watch the hardware video](images/hardware-demo.mp4)
+
+**DE:** Aufnahme aus dem Ausgangsprojekt mit dem realen ESP32-Hardwareaufbau. Das Video zeigt nicht die später ergänzte BACnet/IP-Integration. Die grüne LED stellt ein Kühlventil dar; die Lüfterrückmeldung ist simuliert.
+
+**EN:** Recording from the original project showing the physical ESP32 setup. The video does not demonstrate the subsequently added BACnet/IP integration. The green LED represents a cooling valve; fan feedback is simulated.
+
 ### Dashboard: BACnet verfügbar / BACnet Online
 
 Temperatur und Luftfeuchtigkeit werden über BACnet/IP gelesen und im Dashboard angezeigt.
