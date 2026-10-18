@@ -645,6 +645,20 @@ A separate COV experiment exposed and read `covIncrement`. Notification delivery
 
 ---
 
+## Projektdateien und Einrichtung / Project Files and Setup
+
+| Bestandteil / Component | Link |
+|---|---|
+| Installations- und Betriebsanleitung / Setup guide | [docs/SETUP.md](docs/SETUP.md) |
+| Node-RED-Flow | [bms-mqtt-bacnet-flow.json](flows/bms-mqtt-bacnet-flow.json) |
+| Python BACnet-Gateway | [mqtt_bacnet_service.py](bacnet/mqtt_bacnet_service.py) |
+| BACnet-Abhängigkeiten / Dependencies | [requirements.txt](bacnet/requirements.txt) |
+| Datenlogger und CSV-Export / Data logging and CSV export | [data-logger](data-logger/) |
+| MQTT-Konfigurationsvorlage / Configuration example | [mqtt.example.json](bacnet/mqtt.example.json) |
+| BACnet-Servicevorlage / Service example | [bms-bacnet.service.example](bacnet/bms-bacnet.service.example) |
+| Node-RED-Kontextspeicher / Context storage | [context-storage.example.js](config/context-storage.example.js) |
+
+
 ## Projektbilder / Project Screenshots
 
 ### Dashboard: BACnet verfügbar / BACnet Online
