@@ -661,6 +661,14 @@ A separate COV experiment exposed and read `covIncrement`. Notification delivery
 
 ## Projektbilder / Project Screenshots
 
+## Hardware / Hardwareaufbau
+
+![ESP32 hardware setup](images/hardware-on.jpg)
+
+**DE:** Hardwareaufbau aus dem Ausgangsprojekt mit ESP32, DHT11, Relais und Lüfter. Die BACnet/IP-Erweiterung verwendet dieselbe Hardware.
+
+**EN:** Hardware setup from the original project with ESP32, DHT11, relay and fan. The BACnet/IP extension uses the same hardware.
+
 ### Dashboard: BACnet verfügbar / BACnet Online
 
 Temperatur und Luftfeuchtigkeit werden über BACnet/IP gelesen und im Dashboard angezeigt.
