@@ -1,0 +1,20 @@
+# Example from the laboratory setup.
+# Adapt User and paths before installation.
+# MQTT credentials are read from:
+# /home/ahmad/.config/bms-logger/mqtt.json
+
+[Unit]
+Description=BMS MQTT Data Logger
+Wants=network-online.target
+After=network-online.target mosquitto.service
+
+[Service]
+Type=simple
+User=ahmad
+WorkingDirectory=/home/ahmad/bms-data-logger
+ExecStart=/home/ahmad/bms-data-logger/.venv/bin/python -u /home/ahmad/bms-data-logger/mqtt_logger.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
