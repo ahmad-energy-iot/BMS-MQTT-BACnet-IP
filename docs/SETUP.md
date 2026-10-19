@@ -4,7 +4,7 @@ Diese Anleitung beschreibt die Einrichtung des MQTT–BACnet/IP-Laborprojekts au
 
 Die Befehle orientieren sich am getesteten Aufbau mit dem Linux-Benutzer `ahmad`. Benutzername, Dateipfade, Netzwerkadresse und Gerätekennungen müssen für eine andere Umgebung angepasst werden.
 
-> Die Anleitung wurde anhand des bestehenden Laboraufbaus erstellt. Eine vollständige Neuinstallation auf einem leeren System sowie ein vollständiger Reboot-Test wurden noch nicht durchgeführt.
+> Die Anleitung wurde anhand des bestehenden Laboraufbaus erstellt. Ein vollständiger Neustart des Raspberry Pi wurde erfolgreich getestet. Eine vollständige Neuinstallation auf einem leeren System wurde noch nicht durchgeführt.
 
 ## 1. Voraussetzungen
 
@@ -386,6 +386,6 @@ Die Reaktionszeiten ergeben sich aus Überwachung, Abfrageintervallen und Timeou
 - BACnet stellt in dieser Version Messwerte bereit; die bestehende Lüfterregelung verbleibt in Node-RED.
 - Das aktuelle Dashboard verwendet Polling, keine getestete COV-Subscription.
 - OOS wird im Gateway als projektspezifisches Kennzeichen fehlender Quelldaten verwendet.
-- Der vollständige Neuaufbau auf einem leeren System, ein Reboot-Test und eine vollständige Wiederherstellung wurden noch nicht verifiziert.
+- Der vollständige Neuaufbau auf einem leeren System und eine vollständige Wiederherstellung wurden noch nicht verifiziert.
 - `.gitignore` entfernt keine bereits veröffentlichten Dateien und ersetzt keine Prüfung vor manuellen Uploads.
 - Zugangsdaten und lokale Datenbanken nicht veröffentlichen.
