@@ -324,7 +324,7 @@ Die BACnet-Serviceversion liest MQTT-Zugangsdaten aus einer lokalen JSON-Konfigu
 
 Die Dienste wurden im laufenden Betrieb geprüft. Für den BACnet-Dienst wurden auch Stoppen, Starten und anschließende BACnet-Lesezugriffe getestet.
 
-**Aktivierter Autostart ist nicht mit einem durchgeführten Neustarttest gleichzusetzen:** Ein vollständiger Reboot-Test des Raspberry Pi bleibt ausstehend.
+Ein vollständiger Neustart des Raspberry Pi wurde erfolgreich getestet. Die Dienste starteten automatisch, und die Messwerte waren anschließend wieder verfügbar.
 
 ### Ports im getesteten Aufbau
 
@@ -411,7 +411,7 @@ Lokale Zugangsdaten, laufende Datenbanken und gespeicherte Kontextwerte sind kei
 - Keine implementierte BACnet-Sollwertschreibung oder Priority-Array-Steuerung.
 - Keine getestete COV-Subscription.
 - Keine erprobte BACnet-MS/TP-, BBMD- oder BACnet/SC-Integration.
-- Reboot- und vollständiger Wiederherstellungstest ausstehend.
+- Vollständiger Wiederherstellungstest auf einem frisch installierten System ausstehend.
 - Verfügbarkeit wird durch das projektspezifische OOS-Modell dargestellt.
 - Abfrage-, Überwachungs- und Netzwerkzeiten sind keine garantierten Echtzeitfristen.
 
@@ -602,7 +602,7 @@ Services:
 
 The gateway service reads MQTT credentials from a local configuration file rather than requesting interactive input.
 
-Service operation and gateway stop/start recovery were tested. Automatic startup is enabled, but a complete Raspberry Pi reboot test remains pending.
+Service operation and gateway stop/start recovery were tested. A complete Raspberry Pi reboot was also tested successfully: the services started automatically, and measurements became available again.
 
 ## Practical Validation
 
@@ -638,7 +638,7 @@ The MQTT recovery test confirms that new stored measurements resumed. It does no
 - No BACnet setpoint writing or Priority Array control.
 - No verified COV subscription.
 - No tested MS/TP, BBMD or BACnet/SC integration.
-- Reboot and clean-system restoration tests remain pending.
+- Clean-system restoration test remains pending.
 - Timing behavior is not a guaranteed real-time response.
 
 A separate COV experiment exposed and read `covIncrement`. Notification delivery was not tested; the active dashboard integration remains polling-based.
