@@ -95,7 +95,13 @@ DP01 und DP02 stammen vom selben DHT11 und werden über MQTT und BACnet untersch
 
 ### 3. Funktionsbeschreibung und Zuordnung zum CAD-Systembild
 
-**Zeichnung BMS-01:** [BMS / MQTT – BACnet/IP: Functional system overview (DXF)](docs/cad/BMS-MQTT-BACnet-IP-system-overview.dxf).
+**Zeichnung BMS-01: BMS / MQTT – BACnet/IP**
+
+[![BMS-01: Systemübersicht in BricsCAD](images/bms-system-overview-bricscad.png)](images/bms-system-overview-bricscad.png)
+
+Systemübersicht in BricsCAD. Zum Vergrößern auf das Bild klicken. Die DXF-Datei kann heruntergeladen und in BricsCAD oder einer kompatiblen CAD-Anwendung geöffnet und bearbeitet werden.
+
+[DXF-Datei herunterladen](https://github.com/ahmad-energy-iot/BMS-MQTT-BACnet-IP/raw/refs/heads/main/docs/cad/BMS-MQTT-BACnet-IP-system-overview.dxf)
 
 Das Systembild zeigt Komponenten, Funktionswege und Protokollverbindungen. Es ist ein funktionales Übersichtsschema mit vereinfachten Hardwarewegen; Versorgung, Schutzbeschaltung, vollständige Klemmen- und Aderbelegung sind nicht dargestellt. Es ersetzt keinen elektrischen Stromlauf- oder Installationsplan.
 
@@ -613,7 +619,13 @@ DP01 and DP02 originate from the same DHT11 and are exposed through MQTT and BAC
 
 ### 3. Functional Description and CAD Overview Mapping
 
-**Drawing BMS-01:** [BMS / MQTT – BACnet/IP: Functional system overview (DXF)](docs/cad/BMS-MQTT-BACnet-IP-system-overview.dxf).
+**Drawing BMS-01: BMS / MQTT – BACnet/IP**
+
+[![BMS-01: system overview in BricsCAD](images/bms-system-overview-bricscad.png)](images/bms-system-overview-bricscad.png)
+
+System overview in BricsCAD. Click the image to enlarge it. Download the DXF file to open and edit it in BricsCAD or a compatible CAD application.
+
+[Download DXF drawing](https://github.com/ahmad-energy-iot/BMS-MQTT-BACnet-IP/raw/refs/heads/main/docs/cad/BMS-MQTT-BACnet-IP-system-overview.dxf)
 
 The drawing shows components, functional paths and protocol connections. It is a functional overview with simplified hardware routes; power supplies, protective circuitry and complete terminal/wire assignments are not shown. It does not replace an electrical circuit or installation drawing.
 
