@@ -48,6 +48,103 @@ Die Erweiterung ergänzt insbesondere:
 | Alarmierung | Getrennte Ereignisse für Temperaturdatenausfall und fehlende simulierte Lüfterrückmeldung |
 | Betrieb | Datenlogger und BACnet-Gateway als systemd-Dienste |
 
+## Gebäudetechnische Planung – praktische Anwendung im eigenen GA-Laborprojekt
+
+Dieser Abschnitt bündelt die **praktische Anwendung von Planungsaufgaben der Gebäudeautomation im persönlichen Einraum-Laborprojekt**: Anforderungen formulieren, Datenpunkte und Schnittstellen zuordnen, Funktionen beschreiben und anhand dokumentierter Tests prüfen.
+
+Die Unterlagen wurden am bestehenden Aufbau nachgeführt und zur Weiterentwicklung strukturiert. Sie dokumentieren eigene Projektpraxis; sie sind keine Ausführungsplanung einer produktiven Gebäudeanlage und kein Nachweis beruflicher Planungserfahrung in Kundenprojekten. Der folgende Anforderungskatalog beschreibt den bestehenden Laborumfang, nicht nachträglich behauptete ursprüngliche Auftraggebervorgaben.
+
+### 1. Anforderungen und Systemgrenzen
+
+| ID | Anforderung für Raum 1 | Zugeordnete Punkte |
+|---|---|---|
+| R01 | Reale Temperatur und relative Luftfeuchtigkeit erfassen und visualisieren. | DP01–DP02 |
+| R02 | Im AUTO-Betrieb den realen Lüfter über MQTT/Relais mit einer Hysterese um den Sollwert steuern; bei 23 °C Sollwert EIN ab 24 °C, AUS bis einschließlich 22 °C. | DP01, DP03–DP05 |
+| R03 | AUTO/MANUAL umschalten und im manuellen Betrieb einen Lüfterbefehl über Inject-Nodes vorgeben. | DP04–DP05 |
+| R04 | Den dargestellten Kühlventilzustand nur bei Kühlbedarf, Lüfterbefehl EIN, simulierter Lüfterrückmeldung EIN und ohne Temperaturdaten-Timeout freigeben. | DP05–DP07, DP10 |
+| R05 | Temperatur und Luftfeuchtigkeit als BACnet-Softwareobjekte bereitstellen und je Messgröße die Aktualität überwachen. | DP01–DP02, DP08–DP09 |
+| R06 | Bei erkannter Nichtverfügbarkeit der Quelldaten oder BACnet-Lesefehlern die betroffene BACnet-Zahlenanzeige durch „Daten nicht verfügbar“ ersetzen; nach Erholung gültige Werte wieder anzeigen. | DP08–DP09, DP12 |
+| R07 | Fehlende Temperaturdaten und fehlende simulierte Lüfterrückmeldung bei Einschaltbefehl als getrennte Alarmursachen mit Beginn, Ende und Status dokumentieren. | DP10–DP11 |
+| R08 | Temperatur und Luftfeuchtigkeit historisch speichern und als CSV exportieren. | DP01–DP02 |
+| R09 | Gateway und Datenlogger als Dienste betreiben und die Wiederaufnahme nach Neustart prüfen. | Gateway / Logger |
+
+**Abgrenzung:** Ein Raum, realer DHT11, ESP32, Relais und 5-V-Lüfter. Kühlventil durch LED dargestellt, Lüfterrückmeldung und Modbus-Station simuliert. BACnet dient dem Lesen und Überwachen; die Lüftersteuerung erfolgt weiterhin über MQTT. Keine Auslegung einer realen Lüftungsanlage, keine Gebäudeinstallation und keine zertifizierte Sicherheitsfunktion.
+
+### 2. Zusammengeführte Datenpunkt- und Schnittstellenliste
+
+Die Kennungen DP01–DP12 dienen der Querverweisung in dieser Dokumentation. Sie ändern keine MQTT-Topics, BACnet-Instanzen oder Namen im Flow und sind noch keine zusätzlichen Beschriftungen innerhalb der DXF-Zeichnung.
+
+| ID | Datenpunkt / Funktion | Wert / Einheit | Quelle → Verwendung | Adresse / Zuordnung | Realisierung |
+|---|---|---|---|---|---|
+| DP01 | Raumtemperatur | Zahl / °C | DHT11, ESP32 → Node-RED, Gateway, Logger | GPIO4; MQTT `bms/room1/temperature`; BACnet `analog-value,1`, `present-value` | Reale Messung; BACnet-Softwarewert |
+| DP02 | Relative Luftfeuchtigkeit | Zahl / % r. F. | DHT11, ESP32 → Node-RED, Gateway, Logger | GPIO4; MQTT `bms/room1/humidity`; BACnet `analog-value,2`, `present-value` | Reale Messung; BACnet-Softwarewert |
+| DP03 | Temperatursollwert | Zahl / °C; Standard 23 | Vorgabe / Modbus-Simulator → Regelung | Flow `setpoint`; Modbus Holding Register Offset 0, Skalierung ×10 beim Schreiben / ×0,1 beim Lesen | Softwarevorgabe |
+| DP04 | Betriebsart | AUTO / MANUAL | Inject-Nodes → Steuerung | Flow `autoMode`: true / false | Softwarebedienung |
+| DP05 | Lüfterbefehl | ON / OFF | Node-RED → ESP32 / Relais; parallel Modbus-Abbild | MQTT `bms/room1/fan/command`; GPIO23, Active LOW; Modbus Coil Offset 0 | Befehl an realen Lüfter; Modbus-Abbild simuliert |
+| DP06 | Lüfterrückmeldung | EIN / AUS | Inject / Modbus-Simulator → Überwachung und Ventilfreigabe | Modbus Discrete Input Offset 0; Flow `fanFeedback` | Simuliert; kein Drehzahlnachweis |
+| DP07 | Kühlventilbefehl | ON / OFF | Node-RED → ESP32 / LED | MQTT `bms/room1/valve/command`; GPIO26 | LED statt physischem Ventil |
+| DP08 | Verfügbarkeit Temperatur über BACnet | Boolean; true = im Labormodell nicht verfügbar | Gateway → Node-RED-Anzeigefreigabe | `analog-value,1`, `out-of-service` (Property 81) | Softwarestatus; kein zusätzlicher Sensor |
+| DP09 | Verfügbarkeit Luftfeuchtigkeit über BACnet | Boolean; true = im Labormodell nicht verfügbar | Gateway → Node-RED-Anzeigefreigabe | `analog-value,2`, `out-of-service` (Property 81) | Softwarestatus; kein zusätzlicher Sensor |
+| DP10 | Temperaturdatenalarm | Aktiv / gegangen | Temperatur-Watchdog → Alarmhistorie | Nachricht `temperatureDataAlarm`; Historienursache `temperatureTimeout` | Abgeleiteter Softwarealarm |
+| DP11 | Lüfterrückmeldungsalarm | Aktiv / gegangen | Befehls-/Rückmeldungsvergleich → Alarmhistorie | Nachricht `fanFeedbackAlarm`; Historienursache `fanFeedback` | Abgeleitet aus realem Befehl und simulierter Rückmeldung |
+| DP12 | BACnet-Kommunikationsfehler | Lesefehler / Nichtverfügbarkeit | BACnet-Leseknoten → Catch → betroffene Anzeige | `BACnet Fehler Catch` / `BACnet Fehler Anzeige` | Lokale Fehlerauswertung, kein empfangenes Fehlerobjekt |
+
+Modbus-Adressen sind **nullbasierte Offsets je Datenbereich**. Holding Register 0, Coil 0 und Discrete Input 0 sind verschiedene Adressräume. BACnet-Gerät: Device Instance `123001`, Name `BMS-Room1-Bridge`; die beiden Analog Values gehören zu diesem Softwaregerät. Für DP03–DP07 und DP10–DP12 wird hier kein zusätzliches BACnet-Objekt behauptet.
+
+DP01 und DP02 stammen vom selben DHT11 und werden über MQTT und BACnet unterschiedlich bereitgestellt; diese Wege sind keine unabhängigen Messungen. `Out_Of_Service` ist die bereits beschriebene projektspezifische Laborvereinfachung zur Verfügbarkeit, kein allgemeingültiges BACnet-Kommunikationsfehlermodell.
+
+### 3. Funktionsbeschreibung und Zuordnung zum CAD-Systembild
+
+**Zeichnung BMS-01:** [BMS / MQTT – BACnet/IP: Functional system overview (DXF)](docs/cad/BMS-MQTT-BACnet-IP-system-overview.dxf).
+
+Das Systembild zeigt Komponenten, Funktionswege und Protokollverbindungen. Es ist ein funktionales Übersichtsschema mit vereinfachten Hardwarewegen; Versorgung, Schutzbeschaltung, vollständige Klemmen- und Aderbelegung sind nicht dargestellt. Es ersetzt keinen elektrischen Stromlauf- oder Installationsplan.
+
+| Bezeichnung im CAD-Systembild | Funktion / Dokumentationsbezug |
+|---|---|
+| DHT11 / ESP32 | DP01–DP02 erfassen; DP05 und DP07 ausgeben |
+| RELAY / FAN | DP05 schaltet den realen 5-V-Lüfter |
+| LED / Cooling valve represented by LED | DP07 stellt den Ventilbefehl dar |
+| MQTT BROKER / Mosquitto | Überträgt Messwerte DP01–DP02 und Befehle DP05, DP07 |
+| Node-RED / Control + Dashboard | Verarbeitet DP01–DP12; Betriebsarten, Hysterese, Alarmierung und Anzeigen |
+| Python Gateway / MQTT to BACnet/IP | Stellt DP01–DP02 als BACnet-Werte und DP08–DP09 als Verfügbarkeitsstatus bereit |
+| Modbus TCP simulator | Softwareabbild von Sollwert, Lüfterbefehl und simulierter Rückmeldung DP03, DP05–DP06 |
+| Python logger / SQLite | Speichert Messwerte DP01–DP02; Dashboard liest Historie und exportiert CSV |
+
+**Betriebsfolge und Entscheidungen:**
+
+1. **Messen und regeln:** Der ESP32 veröffentlicht Temperatur und Luftfeuchtigkeit ungefähr alle 2 Sekunden. Node-RED berechnet den Kühlbedarf aus der Temperatur. Im AUTO-Betrieb gilt EIN ab Sollwert +1 K und AUS bis einschließlich Sollwert −1 K; dazwischen bleibt der Kühlzustand erhalten. Die Hysterese begrenzt häufiges Umschalten nahe dem Sollwert.
+2. **Betriebsart und Lüfter:** `Fan Alarm Logic` wählt im AUTO-Betrieb den Kühlbedarf als Lüfterbefehl; bei erkanntem Temperaturdaten-Timeout wird der AUTO-Befehl AUS. Im MANUAL-Betrieb wird `manualFanCommand` verwendet. Die Vorgaben erfolgen über Inject-Nodes im Editor, nicht über neue Dashboard-Bedienelemente.
+3. **Rückmeldung und Ventildarstellung:** `Kühlventil Command` gibt die Ventil-LED nur frei, wenn Kühlbedarf, Lüfterbefehl und simulierte Rückmeldung true sind und kein Temperaturdaten-Timeout anliegt. Die LED ist damit eine bedingte Funktionsdarstellung, kein Nachweis eines realen Ventils.
+4. **Alarmierung:** Der Temperatur-Watchdog im Node-RED-Flow ist auf 5 Sekunden eingestellt. Bei Lüfterbefehl EIN ohne simulierte Rückmeldung startet eine 5-Sekunden-Überwachung; die Auswertung erfolgt beim nächsten Steuerungs- bzw. Prüftakt. Der aktuelle Flow enthält dafür einen 1-Sekunden-Prüftakt. Beide Alarmursachen werden getrennt in der auf drei Ereignisse begrenzten Historie geführt. Dies sind keine garantierten Echtzeitfristen.
+5. **BACnet-Überwachung:** Das Gateway überwacht beide Messgrößen unabhängig mit einer 15-Sekunden-Aktualisierungsfrist. Node-RED liest Werte und Verfügbarkeitsstatus alle 5 Sekunden. Quelle ausgefallen und Gateway nicht erreichbar werden über unterschiedliche Mechanismen erkannt: Punktstatus bzw. Catch der BACnet-Lesefehler. Erst nach Erkennung wird die betroffene Zahlenanzeige ersetzt; Polling und Timeout verursachen Verzögerungen.
+6. **Historie:** Ein separater Logger speichert geeignete MQTT-Messwerte mit mindestens 60 Sekunden Abstand je Messgröße im laufenden Prozess. Die Aufbewahrungsbedingung beträgt 72 Stunden. Der CSV-Export enthält Messwerte; Alarmhistorie und Lüfterzustände gehören nicht zu diesem Export.
+
+**Umsetzungsbezug:** Die vorhandenen Funktionen und Adressen sind im [aktuellen Node-RED-Flow](flows/bms-mqtt-bacnet-flow.json) nachvollziehbar. GPIO-Zuordnung, Firmware und die ursprünglichen Steuerungstests sind im [Ausgangsprojekt](https://github.com/ahmad-energy-iot/BMS-ESP32-MQTT-HVAC#esp32-anschlüsse) dokumentiert. Einrichtung und Dienstkonfiguration beschreibt [SETUP.md](docs/SETUP.md).
+
+### 4. Anforderungsbezogene Prüfmatrix
+
+Die Spalte „Dokumentierter Stand“ übernimmt bereits berichtete Laborbeobachtungen aus diesem README bzw. dem Ausgangsprojekt. Beim Ergänzen dieser Planungsunterlagen wurde kein neuer Hardwaretest durchgeführt. Quelltextprüfung bestätigt die beschriebene Implementierung, ersetzt aber keine erneute Prüfung am Aufbau.
+
+| Bezug | Prüfschritt | Erwartetes Verhalten | Dokumentierter Stand / offener Nachweis |
+|---|---|---|---|
+| R01, R05 | Reale Temperatur und Luftfeuchtigkeit über MQTT/Gateway lesen und BACnet-Namen, Werte und Einheiten prüfen. | Beide Werte sind zugeordnet und über BACnet lesbar. | Im bestehenden BACnet-Labortest erfolgreich dokumentiert. |
+| R02 | Bei 23 °C Sollwert Temperatur über 24 °C und unter 22 °C führen. | Lüfter EIN ab 24 °C, AUS bis einschließlich 22 °C. | Hysteresetest und reale MQTT-/Relaisansteuerung im Ausgangsprojekt dokumentiert. |
+| R02 | Im Zwischenbereich nach EIN und nach AUS prüfen. | Vorheriger Kühlzustand bleibt erhalten. | Im aktuellen Quelltext nachvollziehbar; separate Mess-/Testaufzeichnung beider Richtungen noch offen. |
+| R03 | AUTO/MANUAL und manuellen EIN-/AUS-Befehl bei unterschiedlichen Kühlbedarfen prüfen. | Im MANUAL-Betrieb folgt der Lüfter der manuellen Vorgabe; bei AUTO wieder der Regelung. | Bedienpfad und Logik vorhanden; vollständige dokumentierte Umschaltprüfung noch offen. |
+| R04 | Ventilfreigabe mit Kühlbedarf, Lüfterbefehl, simulierter Rückmeldung und Temperatur-Timeout einzeln variieren. | LED nur bei allen Freigabebedingungen EIN. | Logik im Flow vorhanden; systematische Prüfung aller Freigabebedingungen noch offen. |
+| R06, R07 | Sensordaten unterbrechen und wieder aufnehmen. | Temperaturdatenalarm; betroffene BACnet-Anzeigen nach Erkennung nicht verfügbar; Erholung nach neuen gültigen Werten. | Unterbrechung und Erholung dokumentiert; beide Überwachungswege haben unterschiedliche Fristen. |
+| R05, R06 | Nur Luftfeuchteaktualisierung pausieren, anschließend fortsetzen. | Luftfeuchtigkeit nicht verfügbar, Temperatur bleibt verfügbar; anschließende Erholung. | Unabhängiger Timeout und Erholung ohne Neustart der Testanwendung dokumentiert. |
+| R06 | BACnet-Dienst stoppen und starten. | Lesefehler wird erfasst, betroffene Anzeigen melden Nichtverfügbarkeit; anschließend Rückkehr gültiger Werte. | `ERR_TIMEOUT`, Ersatzanzeige und Wiederkehr dokumentiert. |
+| R07 | Lüfterbefehl EIN mit simulierter Rückmeldung AUS, danach Rückmeldung wieder EIN. | Rückmeldungsalarm nach Auswertung der Verzögerung; Beginn und Ende in der Historie. | Alarmbeginn/-ende mit simulierter Rückmeldung im Ausgangsprojekt dokumentiert. |
+| R07 | Beide Alarmursachen gleichzeitig auslösen und getrennt zurücknehmen. | Zwei getrennte Ereignisse; jede Ursache wird unabhängig beendet. | Getrennte Verarbeitung im aktuellen Flow nachvollziehbar; vollständiger kombinierter Testnachweis noch offen. |
+| R08 | SQLite-Daten lesen, CSV anfordern und Export öffnen. | Gespeicherte Messwerte lesbar; CSV nach Betätigung verfügbar. | SQL-Auswertung, Download und Öffnen im Tabellenprogramm dokumentiert. |
+| R08 | Altersbedingte Bereinigung prüfen. | Datensätze älter als 72 Stunden werden bei ausgeführter Bereinigung entfernt. | Bedingung in temporärer Testdatenbank geprüft; mehrtägige Dauerbeobachtung nicht dokumentiert. |
+| R09 | Raspberry Pi neu starten. | Gateway und Logger starten automatisch; Messwerte wieder verfügbar. | Im bestehenden README als erfolgreicher Neustarttest dokumentiert. |
+
+Die offenen Prüfungen sind konkrete nächste Arbeitsschritte am Laboraufbau. Ihre Auflistung ist kein bereits erbrachter Testerfolg. Die Planungsübung zeigt die Verknüpfung von Anforderungen, Datenpunkten, Funktionen, Systembild und Prüfungen; eine formale Planprüfung oder Abnahme einer Gebäudeanlage ist damit nicht verbunden.
+
+---
+
 ## Architektur
 
 ```mermaid
@@ -468,6 +565,103 @@ The original setup provides physical sensor readings and fan switching, MQTT com
 - Browser-based CSV download.
 - Separate alarm records for missing temperature data and missing simulated fan feedback.
 - Background operation through systemd.
+
+## Building Services Planning – Practical Application in a Personal GA Laboratory Project
+
+This section consolidates **practical building automation planning tasks in a personal single-room laboratory project**: defining requirements, mapping data points and interfaces, describing functions, and checking them against documented tests.
+
+The documents were developed retrospectively on the existing setup and structured to support further development. They demonstrate personal project practice, not execution planning for a production building or professional planning experience in customer projects. The requirements below describe the existing laboratory scope, not a claimed original client specification.
+
+### 1. Requirements and System Boundaries
+
+| ID | Requirement for Room 1 | Related points |
+|---|---|---|
+| R01 | Acquire and display real temperature and relative humidity measurements. | DP01–DP02 |
+| R02 | In AUTO mode, control the real fan over MQTT/relay using setpoint hysteresis: at a 23 °C setpoint, ON at or above 24 °C and OFF at or below 22 °C. | DP01, DP03–DP05 |
+| R03 | Switch between AUTO/MANUAL and issue manual fan commands through Inject nodes. | DP04–DP05 |
+| R04 | Enable the represented cooling valve only with cooling demand, fan command ON, simulated fan feedback ON, and no temperature-data timeout. | DP05–DP07, DP10 |
+| R05 | Expose temperature and humidity as BACnet software objects and monitor freshness separately for each measurement. | DP01–DP02, DP08–DP09 |
+| R06 | After detecting unavailable source data or BACnet read errors, replace the affected BACnet numeric display with “Daten nicht verfügbar”; restore valid readings after recovery. | DP08–DP09, DP12 |
+| R07 | Record missing temperature data and missing simulated fan feedback during an ON command as separate alarm causes, with start, end and status. | DP10–DP11 |
+| R08 | Store temperature and humidity history and export measurements as CSV. | DP01–DP02 |
+| R09 | Run the gateway and logger as services and check recovery after a restart. | Gateway / logger |
+
+**Scope:** One room, physical DHT11, ESP32, relay and 5 V fan. A physical LED represents the cooling valve; fan feedback and the Modbus station are simulated. BACnet provides reading and monitoring; fan control remains on MQTT. This does not include sizing a real ventilation system, a building installation or a certified safety function.
+
+### 2. Unified Data-Point and Interface List
+
+DP01–DP12 are documentation cross-reference IDs. They do not change MQTT topics, BACnet instances or flow names and are not additional labels embedded in the DXF drawing.
+
+| ID | Point / function | Value / unit | Source → use | Address / mapping | Implementation |
+|---|---|---|---|---|---|
+| DP01 | Room temperature | Number / °C | DHT11, ESP32 → Node-RED, gateway, logger | GPIO4; MQTT `bms/room1/temperature`; BACnet `analog-value,1`, `present-value` | Physical measurement; BACnet software value |
+| DP02 | Relative humidity | Number / % RH | DHT11, ESP32 → Node-RED, gateway, logger | GPIO4; MQTT `bms/room1/humidity`; BACnet `analog-value,2`, `present-value` | Physical measurement; BACnet software value |
+| DP03 | Temperature setpoint | Number / °C; default 23 | Input / Modbus simulator → control | Flow `setpoint`; Modbus Holding Register offset 0, ×10 on write / ×0.1 on read | Software input |
+| DP04 | Operating mode | AUTO / MANUAL | Inject nodes → control | Flow `autoMode`: true / false | Software operation |
+| DP05 | Fan command | ON / OFF | Node-RED → ESP32 / relay; parallel Modbus representation | MQTT `bms/room1/fan/command`; GPIO23, active LOW; Modbus Coil offset 0 | Command to physical fan; simulated Modbus representation |
+| DP06 | Fan feedback | ON / OFF | Inject / Modbus simulator → monitoring and valve enable | Modbus Discrete Input offset 0; flow `fanFeedback` | Simulated; no proof of rotation |
+| DP07 | Cooling valve command | ON / OFF | Node-RED → ESP32 / LED | MQTT `bms/room1/valve/command`; GPIO26 | LED instead of physical valve |
+| DP08 | BACnet temperature availability | Boolean; true = unavailable in the laboratory model | Gateway → Node-RED display guard | `analog-value,1`, `out-of-service` (Property 81) | Software status; no additional sensor |
+| DP09 | BACnet humidity availability | Boolean; true = unavailable in the laboratory model | Gateway → Node-RED display guard | `analog-value,2`, `out-of-service` (Property 81) | Software status; no additional sensor |
+| DP10 | Temperature-data alarm | Active / cleared | Temperature watchdog → alarm history | Message `temperatureDataAlarm`; history cause `temperatureTimeout` | Derived software alarm |
+| DP11 | Fan-feedback alarm | Active / cleared | Command/feedback comparison → alarm history | Message `fanFeedbackAlarm`; history cause `fanFeedback` | Derived from physical command and simulated feedback |
+| DP12 | BACnet communication error | Read error / unavailability | BACnet read nodes → Catch → affected display | `BACnet Fehler Catch` / `BACnet Fehler Anzeige` | Local error processing, not a received error object |
+
+Modbus addresses are **zero-based offsets within each data area**. Holding Register 0, Coil 0 and Discrete Input 0 belong to different address spaces. BACnet device: Device Instance `123001`, name `BMS-Room1-Bridge`; both Analog Values belong to this software device. No additional BACnet objects are claimed here for DP03–DP07 or DP10–DP12.
+
+DP01 and DP02 originate from the same DHT11 and are exposed through MQTT and BACnet; these paths are not independent measurements. `Out_Of_Service` is the previously described project-specific availability simplification, not a universally applicable BACnet communication-failure model.
+
+### 3. Functional Description and CAD Overview Mapping
+
+**Drawing BMS-01:** [BMS / MQTT – BACnet/IP: Functional system overview (DXF)](docs/cad/BMS-MQTT-BACnet-IP-system-overview.dxf).
+
+The drawing shows components, functional paths and protocol connections. It is a functional overview with simplified hardware routes; power supplies, protective circuitry and complete terminal/wire assignments are not shown. It does not replace an electrical circuit or installation drawing.
+
+| Label in CAD overview | Function / documentation reference |
+|---|---|
+| DHT11 / ESP32 | Acquire DP01–DP02; output DP05 and DP07 |
+| RELAY / FAN | DP05 switches the physical 5 V fan |
+| LED / Cooling valve represented by LED | DP07 represents the valve command |
+| MQTT BROKER / Mosquitto | Transfers measurements DP01–DP02 and commands DP05, DP07 |
+| Node-RED / Control + Dashboard | Processes DP01–DP12; modes, hysteresis, alarms and displays |
+| Python Gateway / MQTT to BACnet/IP | Exposes DP01–DP02 as BACnet values and DP08–DP09 as availability status |
+| Modbus TCP simulator | Software representation of setpoint, fan command and simulated feedback DP03, DP05–DP06 |
+| Python logger / SQLite | Stores DP01–DP02; dashboard reads history and exports CSV |
+
+**Operating sequence and design decisions:**
+
+1. **Measurement and control:** The ESP32 publishes temperature and humidity approximately every 2 seconds. Node-RED calculates cooling demand from temperature. In AUTO mode, demand switches ON at setpoint +1 K and OFF at or below setpoint −1 K; the cooling state is retained between thresholds. Hysteresis limits repeated switching close to the setpoint.
+2. **Mode and fan:** `Fan Alarm Logic` uses cooling demand as the AUTO fan command; a detected temperature-data timeout sets the AUTO command OFF. MANUAL mode uses `manualFanCommand`. Commands are entered through editor Inject nodes, not newly added dashboard controls.
+3. **Feedback and valve representation:** `Kühlventil Command` enables the valve LED only when cooling demand, fan command and simulated feedback are true and no temperature-data timeout is active. The LED is a conditional functional representation, not evidence of a physical valve.
+4. **Alarms:** The Node-RED temperature watchdog is configured for 5 seconds. Fan command ON without simulated feedback starts a 5-second monitoring period, evaluated on the next control message or check tick. The current flow includes a 1-second check tick. Both causes are tracked separately in a history limited to three events. These are not guaranteed real-time deadlines.
+5. **BACnet monitoring:** The gateway monitors both measurements independently using a 15-second freshness limit. Node-RED polls values and availability every 5 seconds. Source failure and unreachable gateway are detected differently: point status versus caught BACnet read errors. The affected numeric display is replaced only after detection; polling and timeouts introduce delays.
+6. **History:** A separate logger stores suitable MQTT measurements at least 60 seconds apart for each metric within a running process. The retention condition is 72 hours. CSV exports contain measurements, not alarm history or fan states.
+
+**Implementation references:** Existing functions and addresses can be traced in the [current Node-RED flow](flows/bms-mqtt-bacnet-flow.json). GPIO mapping, firmware and original control tests are documented in the [base project](https://github.com/ahmad-energy-iot/BMS-ESP32-MQTT-HVAC#esp32-connections). [SETUP.md](docs/SETUP.md) describes setup and service configuration.
+
+### 4. Requirements-Based Verification Matrix
+
+“Documented status” refers to previously reported laboratory observations in this README or the base project. No new hardware tests were performed while adding these planning documents. Source inspection confirms implementation details but does not replace a new test on the setup.
+
+| Reference | Test step | Expected behavior | Documented status / remaining evidence |
+|---|---|---|---|
+| R01, R05 | Read physical temperature and humidity through MQTT/gateway; check BACnet names, values and units. | Both values are mapped and readable over BACnet. | Successful existing BACnet laboratory tests documented. |
+| R02 | At a 23 °C setpoint, move temperature above 24 °C and below 22 °C. | Fan ON at or above 24 °C, OFF at or below 22 °C. | Hysteresis test and physical MQTT/relay actuation documented in the base project. |
+| R02 | Test the intermediate band after an ON state and after an OFF state. | Previous cooling state is retained. | Traceable in current source; separate recorded tests in both directions remain open. |
+| R03 | Switch AUTO/MANUAL and issue manual ON/OFF commands at different cooling demands. | In MANUAL, the fan follows manual input; in AUTO, it returns to control logic. | Operation path and logic present; a complete documented changeover test remains open. |
+| R04 | Vary cooling demand, fan command, simulated feedback and temperature timeout individually. | LED ON only when all enable conditions are met. | Logic present in flow; systematic testing of all enable conditions remains open. |
+| R06, R07 | Interrupt sensor data, then resume. | Temperature-data alarm; affected BACnet displays unavailable after detection; recovery after fresh valid values. | Interruption and recovery documented; the two monitoring paths use different timing limits. |
+| R05, R06 | Pause only humidity updates, then resume. | Humidity unavailable while temperature remains available; subsequent recovery. | Independent timeout and recovery without restarting the test application documented. |
+| R06 | Stop and start the BACnet service. | Read error caught; affected displays show unavailability; valid values return after recovery. | `ERR_TIMEOUT`, replacement display and recovery documented. |
+| R07 | Set fan command ON with simulated feedback OFF, then restore feedback ON. | Feedback alarm after the evaluated delay; start and end recorded in history. | Alarm activation/clearance with simulated feedback documented in the base project. |
+| R07 | Trigger both alarm causes together and clear them separately. | Two separate events; each cause clears independently. | Separate handling traceable in current flow; complete combined test evidence remains open. |
+| R08 | Read SQLite records, request CSV and open the export. | Stored measurements readable; CSV available after button activation. | SQL queries, download and opening in a spreadsheet documented. |
+| R08 | Check age-based cleanup. | Records older than 72 hours removed when cleanup runs. | Condition tested in a temporary database; multi-day observation not documented. |
+| R09 | Restart the Raspberry Pi. | Gateway and logger start automatically; measurements become available again. | Successful restart test reported in the existing README. |
+
+Open checks are specific next tasks on the laboratory setup; listing them does not claim they have passed. The planning exercise links requirements, points, functions, the overview drawing and verification; it does not constitute formal plan approval or acceptance of a building installation.
+
+---
 
 ## System Roles
 
